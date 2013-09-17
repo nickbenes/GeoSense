@@ -2,7 +2,7 @@ var errors = require('./errors'),
 	util = require('./util'),
 	DataTransformError = errors.DataTransformError, FilterWarning = errors.FilterWarning, 
 	Document = require('./document'),
-	coordinates = require('../../../geogoose/').coordinates,
+	coordinates2d = require('../../../geogoose/coordinates').coordinates2d,
 	ValidationError = errors.ValidationError,
 	console = require('../../../ext-console.js'),
 	_ = require('cloneextend'),
@@ -39,7 +39,7 @@ var Filter = {
 	isFuture: function(val, warnings) {
 		var ret = Filter.isValidDate(val) && val > new Date();
 		if (!ret && warnings) {
-			warnings.push('Not zero: ' + val);
+			warnings.push('Not future: ' + val);
 		}
 		return ret;
 	},
@@ -61,10 +61,11 @@ var Filter = {
 	},
 
 	isValidDate: function(d, permissive, warnings) {
-		if ((!permissive && permissive != undefined || Array.isArray(permissive))) {
-			if ((d + '').match(DATE_NON_PERMISSIVE_EXCLUDE)) return false;
+		if ((typeof d == 'string' || typeof d == 'number') 
+			&& (!permissive && permissive != undefined || Array.isArray(permissive))) {
+				if ((d + '').match(DATE_NON_PERMISSIVE_EXCLUDE)) return false;
 		}
-		var ret = d && Cast.Date(d);
+		var ret = d && moment(Cast.Date(d)).isValid();
 		if (!ret && warnings) {
 			warnings.push('Not a valid date: ' + val);
 		}
@@ -202,15 +203,15 @@ var Cast = {
 	{
 		var options = options || {},
 			isArray = Array.isArray(value);
-		if ((isArray && value.length == 3) || typeof(value) == 'string') {
+		if (isArray && value.length == 3) {
 			if (isArray) {
 				value = _.clone(value);
 				value[1]--;
 			}
-			var d = moment.call(moment, value);
-			if (d && d.isValid()) {
-				return d._d;
-			}
+		}
+		var d = moment.call(moment, value);
+		if (d && d.isValid()) {
+			return d._d;
 		}
 	}
 }
@@ -349,8 +350,7 @@ var FieldType = {
 				if (arr.length != 2) {
 					return new DataTransformError('Needs 2D');
 				}
-				arr = coordinates.coordinates2d(arr[0], arr[1]);
-				return arr;
+				return coordinates2d(arr[0], arr[1]);
 			}
 		}
 	},
@@ -506,10 +506,7 @@ DataTransform.prototype.emitData = function(transformed, ToModel, numErrors)
 {
 	var m = null;
 	if (ToModel && (!this.options.strict || !numErrors)) {
-		m = new ToModel({}, false);
-		for (var key in transformed) {
-			m.set(key, transformed[key]);
-		}
+		m = new ToModel(util.expandObj(transformed), false);
 	}
 
 	if (this.verbose) {
