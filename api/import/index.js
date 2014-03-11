@@ -76,7 +76,12 @@ var ImportAPI = function(app)
 					message: 'URL is missing'
 				};
 			} else {
-				params.url = req.body.url;
+                if (/^(f|ht)tps?:\/\//i.test(req.body.url)) {
+                    params.url = req.body.url;
+                } else {
+                    params.path = req.body.url;
+                    req.body.path = req.body.url;
+                }
 			}
 
 			if (req.body.aggregate == null || req.body.aggregate) {

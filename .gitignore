@@ -41,4 +41,6 @@ config-prod.js
 prod-scripts
 tmp/*
 TODO.txt
+
 .elasticbeanstalk/
+env.sh
