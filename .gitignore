@@ -44,3 +44,5 @@ TODO.txt
 
 .elasticbeanstalk/
 env.sh
+
+.idea/
